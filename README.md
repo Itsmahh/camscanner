@@ -1,4 +1,4 @@
-my first project in GIT
+my first project on GIT
 
 
 
