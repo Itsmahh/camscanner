@@ -4,8 +4,7 @@ import numpy as np
 class CamScanner:
     def __init__(self,image_address):
         self.image = cv2.imread(image_address)
-        self.resize = cv2.resize(self.image,(300,400),interpolation = cv2.INTER_AREA)
-        
+        self.resize = cv2.resize(self.image,(300,400),interpolation = cv2.INTER_AREA)    
     def order_points(self,points):
         points = points.reshape(4, 2)
 
@@ -47,17 +46,16 @@ class CamScanner:
             if len(approx)==4 and cv2.contourArea(contour)>500 :
                 best_contour = approx
                 break
-            else:
-                print("contour not found")
+        if best_contour is None:
+            print("contour not found")
+            return None
+        
         order = self.order_points(best_contour)
         paper = np.float32([[0, 0], [300, 0], [300, 400], [0, 400]])
         M = cv2.getPerspectiveTransform(order, paper)
         warped = cv2.warpPerspective(self.resize, M, (300, 400))
-
-
-
-
-
+        return warped
+    
 test_images = ['photos/test1.jpg', 'photos/test2.jpg', 'photos/test3.jpg', 'photos/test4.jpg']
 
 for img_address in test_images:
@@ -66,5 +64,4 @@ for img_address in test_images:
 
     if scanned is not None:
         cv2.imshow(f"Result: {img_address}", scanned)
-        cv2.waitKey(0)
-    
+        cv2.waitKey(0)    
