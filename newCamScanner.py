@@ -1,11 +1,12 @@
 import cv2 
 import numpy as np
 
-img=cv2.imread('photos/test3.jpg')
+img=cv2.imread('photos/test4.jpg')
 
 
 #resize images
-resized_img = cv2.resize(img,(300,400))
+
+resized_img = cv2.resize(img,(300,400),interpolation = cv2.INTER_AREA)
 
 #change to gray 
 
@@ -13,42 +14,35 @@ gray = cv2.cvtColor(resized_img,cv2.COLOR_BGR2GRAY)
 
 #bluring
 
-blur = cv2.GaussianBlur(gray,(7,7),1.0)
+blur = cv2.bilateralFilter(gray,9,75,75)
 
-# blur = cv2.bilateralFilter(gray,15,75,75)
+#canny 
 
-# #canny 
-
-canny = cv2.Canny(blur,90,150)
+canny = cv2.Canny(blur,40,120,)
 
 kernel = np.ones((5, 5), np.uint8)
-dilated_edges = cv2.dilate(canny, kernel , iterations=2)
 
 
+dilated_edges = cv2.morphologyEx(canny, cv2.MORPH_CLOSE, kernel, iterations=2)
 
 #contours
 
 contours,hiearchy = cv2.findContours(dilated_edges,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
 
 contours = sorted(contours, key=cv2.contourArea, reverse=True)
-# print(cv2.contourArea(contours[-]))
 best_contour = None
 
 for contour in contours:
 
-    # print(cv2.contourArea(contour))
     epsilon = 0.02*cv2.arcLength(contour,True)
 
     approx = cv2.approxPolyDP(contour,epsilon,True)
-    # print(len(approx))
-    # print(len(contour))
-    # print (cv2.contourArea(contour))
+
     image_copy = resized_img.copy()
 
-    if len(approx)==4 and cv2.contourArea(contour)>100 :
+    if len(approx)==4 and cv2.contourArea(contour)>500 :
         best_contour = approx
         cv2.drawContours(image_copy, [approx], -1, (0, 255, 0), 3)
-
 
         break
     else:
@@ -57,10 +51,9 @@ for contour in contours:
 
 #warping
 
-points = approx.reshape(4, 2)
+points = best_contour.reshape(4, 2)
 
 center = np.mean(points, axis=0)
-
 
 for point in points:
     x = point[0]
@@ -84,7 +77,6 @@ for point in points:
 
 order = np.array([top_left,top_right,bottom_right,bottom_left],dtype = np.float32)
 
-
     
 paper = np.float32([
             [0, 0],             
@@ -97,22 +89,14 @@ M = cv2.getPerspectiveTransform(order, paper)
 
 warped = cv2.warpPerspective(resized_img, M, (300, 400))
 
-
-
-
 warped_gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-warped_blur = cv2. GaussianBlur(warped_gray,(5,5),1.0)
-threshholding = cv2.adaptiveThreshold(warped_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 10)
-thicker_text = cv2.dilate(threshholding, kernel, iterations=2)
+warped_blur = cv2. GaussianBlur(warped_gray,(3,3),1.0)
+thresholding = cv2.adaptiveThreshold(warped_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 51,5)
+kernel = np.ones((1, 1), np.uint8)
+thicker_text = cv2.erode(thresholding, kernel, iterations=1)
 
-cv2.imshow("resized image", resized_img)
-cv2.imshow("gray", gray)
-cv2.imshow("blur", blur)
-cv2.imshow("canny", canny)
-cv2.imshow("dilating", dilated_edges)
-cv2.imshow("image copy", image_copy)
-cv2.imshow("warped", warped)
-cv2.imshow("warped", threshholding)
-
+cv2.imshow("image",image_copy)
+cv2.imshow("warp",warped)
+cv2.imshow("warpedewf", thicker_text)
 
 cv2.waitKey(0)
